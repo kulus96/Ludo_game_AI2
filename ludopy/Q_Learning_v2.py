@@ -10,13 +10,7 @@ import matplotlib.pyplot as plt
 
 number_of_pieces = 4
 # states = ["home", "goal_zone", "goal", "danger", "glob","safe"]
-total_number_of_states = 6
-home_state = 0
-goal_zone_state = 1
-goal_state = 2
-danger_state = 3
-safe_state = 4
-normal_state = 5
+total_number_of_states = 60
 
 # actions = ["move_out", "normal", "goal_zone", "goal", "star", "globe", "protect", "kill", "die",  "nothing"]
 total_number_of_actions = 11
@@ -32,8 +26,6 @@ kill_enemy_action = 8
 suicide_action = 9
 no_action = 10
 def plot_heat_map(q):
-    States = ["Home", "Goal_zone", "Goal", "Danger",
-                  "Safe", "Normal"]
     actions = ["Move_out", "Normal", "In_goal_zone",
                "Enter_goal_zone", "enter_goal_action", "Use_star", "Move_to_safety", "Move_away_from_safe", "Kill_enemy", "Suicide_action","no_action"]
 
@@ -43,17 +35,17 @@ def plot_heat_map(q):
 
     # We want to show all ticks...
     ax.set_xticks(np.arange(len(actions)))
-    ax.set_yticks(np.arange(len(States)))
+    ax.set_yticks(np.arange(total_number_of_states))
     # ... and label them with the respective list entries
     ax.set_xticklabels(actions)
-    ax.set_yticklabels(States)
+    ax.set_yticklabels(range(total_number_of_states))
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
              rotation_mode="anchor")
 
     # Loop over data dimensions and create text annotations.
-    for i in range(len(States)):
+    for i in range(total_number_of_states):
         for j in range(len(actions)):
             text = ax.text(j, i, int(q.Q_table[i, j]*100),
                            ha="center", va="center", color="w")
@@ -85,67 +77,24 @@ class q_learning:
 
         #Parameters for the interpretations of the game
         self.player_index = index
-        self.current_state = [home_state,home_state,home_state,home_state]
+        self.current_state = [0, 0, 0, 0]
         self.last_action = no_action
         self.last_player_pieces = [0,0,0,0]
         self.number_of_wins = 0
         self.number_of_games = 0
-        self.last_state = home_state
+        self.last_state = 0
 
     def reset_game(self):
-        self.current_state = [home_state, home_state, home_state, home_state]
+        self.current_state = [0, 0, 0, 0]
         self.last_action = no_action
-        self.last_state = home_state
+        self.last_state = 0
         self.last_player_pieces = [0, 0, 0, 0]
         self.sum_of_rewards = 0.0
         self.number_of_games = self.number_of_games + 1
 
-    def determined_state(self,player_pieces, enemy_pieces, game):
-        state_of_pieces = [home_state, home_state, home_state, home_state]
-        for piece_index in range(number_of_pieces):
+    def determined_state(self, player_pieces, enemy_pieces, game):
+        return player_pieces
 
-            if player_pieces[piece_index] == player.HOME_INDEX:  # home
-                state_of_pieces[piece_index] = home_state
-            elif player_pieces[piece_index] in player.HOME_AREAL_INDEXS:  # goal zone
-                state_of_pieces[piece_index] = goal_zone_state
-            elif player_pieces[piece_index] == player.GOAL_INDEX:  # goal
-                state_of_pieces[piece_index] = goal_state
-            elif (player_pieces[piece_index] in player.GLOB_INDEXS) or (
-                    player_pieces[piece_index] == player.START_INDEX or count(player_pieces,player_pieces[piece_index])>1 ):
-                state_of_pieces[piece_index] = safe_state
-            else:
-                state_determined = 0
-                for index in range(len(player.LIST_ENEMY_GLOB_INDEX)):
-                    if player_pieces[piece_index] == player.LIST_ENEMY_GLOB_INDEX[index]:
-                        if player.HOME_INDEX in enemy_pieces[index]:
-                            if not (index in game.ghost_players):
-                                state_of_pieces[piece_index] = danger_state
-                            else:
-                                state_of_pieces[piece_index] = safe_state
-                            state_determined = 1
-                            break
-                if state_determined == 0:
-                    if player_pieces[piece_index] in player.STAR_INDEXS:
-                        if player_pieces[piece_index] in player.STAR_INDEXS[1::2]:
-                            range_to_look_for_enemies = list(range(1, 7))
-                            range_to_look_for_enemies.extend(list(range(8, 14)))
-                        else:
-                            range_to_look_for_enemies = list(range(1, 13))
-                    else:
-                        range_to_look_for_enemies = list(range(1, 7))
-                    piece_pos = player_pieces[piece_index]
-                    for index in range_to_look_for_enemies:
-                        piece_pos = player_pieces[piece_index] - index
-                        if piece_pos < 1:
-                            piece_pos = 52 + piece_pos
-                        enemy_at_pos, _ = player.get_enemy_at_pos(piece_pos, enemy_pieces)
-                        if not (enemy_at_pos == player.NO_ENEMY):
-                            state_of_pieces[piece_index] = danger_state
-                            state_determined = 1
-                            break
-                if state_determined == 0:
-                    state_of_pieces[piece_index] = normal_state
-        return state_of_pieces
 
     def determined_possible_actions(self, player_pieces, enemy_pieces, dice):
         possible_actions = [normal_action, normal_action, normal_action, normal_action]
@@ -246,6 +195,22 @@ class q_learning:
             if self.last_player_pieces[i] > 0 and player_pieces[i] == 0: # means that the pieces have been moved home
                 reward += -0.25
                 break
+
+        if not(self.last_action == move_out_action or self.last_action == in_goal_zone_action or \
+                self.last_action == enter_goal_action or self.last_action == enter_goal_zone_action or \
+                self.last_action == suicide_action or self.last_action == no_action):
+            lowest_index = -1
+            lowest_value = 100
+            for i in range(4):
+                if not(self.last_player_pieces[i] == 0):
+                    print("last_player_pieces",self.last_player_pieces[i])
+                    print("lowest_value",lowest_value)
+                    if self.last_player_pieces[i] < lowest_value:
+                        lowest_value = self.last_player_pieces[i]
+                        lowest_index = i
+            if not(lowest_index == -1):
+                if self.last_player_pieces[lowest_index] < player_pieces[i]:
+                    reward += 0.1
 
         return reward
 
