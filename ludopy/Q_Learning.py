@@ -7,6 +7,7 @@ sys.path.append("../")
 import ludopy
 import player
 import matplotlib.pyplot as plt
+from tempfile import TemporaryFile
 
 number_of_pieces = 4
 # states = ["home", "goal_zone", "goal", "danger", "glob","safe"]
@@ -267,6 +268,8 @@ class q_learning:
                         break
         return best_action_player
 
+
+
     def update_q_table(self, player_pieces, enemy_pieces, dice, game, there_is_a_winner):
         current_actions = self.determined_possible_actions( player_pieces,enemy_pieces,dice)
         current_states = self.determined_state(player_pieces, enemy_pieces, game)
@@ -288,11 +291,27 @@ class q_learning:
             self.last_action = current_actions[piece_index]
         return piece_index
 
+    def save_Q_table(self,file_name):
+        file_ext = file_name.split(".")[-1]
+        assert file_ext == "npy", "The file extension has to be npy (numpy file)"
+        np.save(file_name, self.Q_table)
+
+    def load_Q_table(self,file_name):
+        file_ext = file_name.split(".")[-1]
+        assert file_ext == "npy", "The file extension has to be npy (numpy file)"
+        self.Q_table = np.load(file_name)
+
 def run_ludo():
 
     there_is_a_winner = False
-    q_player = 0
+    q_player = 1
     q = q_learning(q_player)
+    q.training = 0
+
+    if q.training == 0:
+        q.explore_rate = 0
+        q.load_Q_table("test1.npy")
+
     number_of_games = 1000
     number_of_wins = 0
     array_of_sum_of_rewards = []
@@ -320,7 +339,7 @@ def run_ludo():
                 piece_to_move = q.update_q_table(player_pieces, enemy_pieces, dice, g, there_is_a_winner)
                 if there_is_a_winner == 1:
                     stop_while = True
-                if player_is_a_winner == 1 :
+                if player_is_a_winner == 1:
                     number_of_wins += 1
             else:
                 if len(move_pieces):
@@ -346,6 +365,7 @@ def run_ludo():
     plot_heat_map(q)
     print(wins)
     plt.show()
+    q.save_Q_table("test1.npy")
 
     #print("Saving history to numpy file")
     #g.save_hist("game_history.npy")

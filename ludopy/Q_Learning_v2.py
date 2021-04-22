@@ -203,8 +203,8 @@ class q_learning:
             lowest_value = 100
             for i in range(4):
                 if not(self.last_player_pieces[i] == 0):
-                    print("last_player_pieces",self.last_player_pieces[i])
-                    print("lowest_value",lowest_value)
+                    #print("last_player_pieces",self.last_player_pieces[i])
+                    #print("lowest_value",lowest_value)
                     if self.last_player_pieces[i] < lowest_value:
                         lowest_value = self.last_player_pieces[i]
                         lowest_index = i
@@ -253,6 +253,16 @@ class q_learning:
             self.last_action = current_actions[piece_index]
         return piece_index
 
+    def save_Q_table(self,file_name):
+        file_ext = file_name.split(".")[-1]
+        assert file_ext == "npy", "The file extension has to be npy (numpy file)"
+        np.save(file_name, self.Q_table)
+
+    def load_Q_table(self,file_name):
+        file_ext = file_name.split(".")[-1]
+        assert file_ext == "npy", "The file extension has to be npy (numpy file)"
+        self.Q_table = np.load(file_name)
+
 def run_ludo():
 
     there_is_a_winner = False
@@ -262,6 +272,13 @@ def run_ludo():
     number_of_wins = 0
     array_of_sum_of_rewards = []
     wins = [0,0,0,0]
+
+    q.training = 0
+
+
+    if q.training == 0:
+        q.explore_rate = 0
+        q.load_Q_table("test1.npy")
 
     for k in range(number_of_games):
         g = ludopy.Game()
@@ -311,7 +328,7 @@ def run_ludo():
     plot_heat_map(q)
     print(wins)
     plt.show()
-
+    q.save_Q_table("test1.npy")
     #print("Saving history to numpy file")
     #g.save_hist("game_history.npy")
     #print("Saving game video")
